@@ -40,7 +40,9 @@ dependencies {
 }
 
 provides {
-	'ox_fuel'
+	'ox_fuel',
+	'cdn-fuel',
+	'LegacyFuel'
 }
 
 use_experimental_fxv2_oal 'yes'

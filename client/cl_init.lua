@@ -109,6 +109,97 @@ RegisterNetEvent('LNS_Fuel:setFuel', function(amt)
     end
 end)
 
+local function registerCompatibilityExport(resourceName, exportName, func)
+    AddEventHandler(('__cfx_export_%s_%s'):format(resourceName, exportName), function(setCB)
+        setCB(func)
+    end)
+end
+
+local function GetFuel(vehicle)
+    if not DoesEntityExist(vehicle) then return 0.0 end
+    local state = Entity(vehicle).state
+    return state.fuel or GetVehicleFuelLevel(vehicle)
+end
+
+local function SetFuel(vehicle, amount)
+    if not DoesEntityExist(vehicle) then return end
+    amount = tonumber(amount)
+    if not amount then return end
+    
+    local state = Entity(vehicle).state
+    fuelMod.setFuel(state, vehicle, amount, true)
+end
+
+exports('GetFuel', GetFuel)
+exports('SetFuel', SetFuel)
+exports('getFuel', GetFuel)
+exports('setFuel', SetFuel)
+
+local legacyResources = { 'ox_fuel', 'cdn-fuel', 'LegacyFuel' }
+for _, res in ipairs(legacyResources) do
+    registerCompatibilityExport(res, 'GetFuel', GetFuel)
+    registerCompatibilityExport(res, 'SetFuel', SetFuel)
+    registerCompatibilityExport(res, 'getFuel', GetFuel)
+    registerCompatibilityExport(res, 'setFuel', SetFuel)
+end
+
+RegisterCommand('testoxfuel', function(source, args)
+    local ped = PlayerPedId()
+    local veh = GetVehiclePedIsIn(ped, false)
+    if not veh or veh == 0 then
+        lib.notify({ type = 'error', description = 'Must be in a vehicle!' })
+        return
+    end
+
+    local setAmount = tonumber(args[1])
+    if setAmount then
+        Entity(veh).state.fuel = setAmount
+        lib.notify({ type = 'info', description = ('ox_fuel: Set fuel to %.1f%%'):format(setAmount) })
+    end
+
+    Wait(100)
+    local fuel = Entity(veh).state.fuel
+    lib.notify({ type = 'success', description = ('ox_fuel: Current fuel is %.1f%%'):format(fuel) })
+end, false)
+
+RegisterCommand('testcdnfuel', function(source, args)
+    local ped = PlayerPedId()
+    local veh = GetVehiclePedIsIn(ped, false)
+    if not veh or veh == 0 then
+        lib.notify({ type = 'error', description = 'Must be in a vehicle!' })
+        return
+    end
+
+    local setAmount = tonumber(args[1])
+    if setAmount then
+        exports['cdn-fuel']:SetFuel(veh, setAmount)
+        lib.notify({ type = 'info', description = ('cdn-fuel: Set fuel to %.1f%%'):format(setAmount) })
+    end
+
+    Wait(100)
+    local fuel = exports['cdn-fuel']:GetFuel(veh)
+    lib.notify({ type = 'success', description = ('cdn-fuel: Current fuel is %.1f%%'):format(fuel) })
+end, false)
+
+RegisterCommand('testlegacyfuel', function(source, args)
+    local ped = PlayerPedId()
+    local veh = GetVehiclePedIsIn(ped, false)
+    if not veh or veh == 0 then
+        lib.notify({ type = 'error', description = 'Must be in a vehicle!' })
+        return
+    end
+
+    local setAmount = tonumber(args[1])
+    if setAmount then
+        exports['LegacyFuel']:SetFuel(veh, setAmount)
+        lib.notify({ type = 'info', description = ('LegacyFuel: Set fuel to %.1f%%'):format(setAmount) })
+    end
+
+    Wait(100)
+    local fuel = exports['LegacyFuel']:GetFuel(veh)
+    lib.notify({ type = 'success', description = ('LegacyFuel: Current fuel is %.1f%%'):format(fuel) })
+end, false)
+
 if Settings.ox_target then 
     require('client.cl_target')
     return 

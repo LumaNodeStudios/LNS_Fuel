@@ -442,3 +442,42 @@ CreateThread(function()
         end
     end, 'GET')
 end)
+
+local function registerCompatibilityExport(resourceName, exportName, func)
+    AddEventHandler(('__cfx_export_%s_%s'):format(resourceName, exportName), function(setCB)
+        setCB(func)
+    end)
+end
+
+local function GetFuel(vehicle)
+    if not DoesEntityExist(vehicle) then return 0.0 end
+    local state = Entity(vehicle).state
+    return state.fuel or (GetVehicleFuelLevel and GetVehicleFuelLevel(vehicle)) or 0.0
+end
+
+local function SetFuel(vehicle, amount)
+    if not DoesEntityExist(vehicle) then return end
+    amount = tonumber(amount)
+    if not amount then return end
+    amount = math.clamp(amount, 0.0, 100.0)
+
+    local state = Entity(vehicle).state
+    state:set('fuel', amount, true)
+
+    if SetVehicleFuelLevel then
+        SetVehicleFuelLevel(vehicle, amount)
+    end
+end
+
+exports('GetFuel', GetFuel)
+exports('SetFuel', SetFuel)
+exports('getFuel', GetFuel)
+exports('setFuel', SetFuel)
+
+local legacyResources = { 'ox_fuel', 'cdn-fuel', 'LegacyFuel' }
+for _, res in ipairs(legacyResources) do
+    registerCompatibilityExport(res, 'GetFuel', GetFuel)
+    registerCompatibilityExport(res, 'SetFuel', SetFuel)
+    registerCompatibilityExport(res, 'getFuel', GetFuel)
+    registerCompatibilityExport(res, 'setFuel', SetFuel)
+end
