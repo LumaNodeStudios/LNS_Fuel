@@ -4,6 +4,20 @@ if not Settings or not Settings.ownership or not Settings.ownership.enabled then
 local hlpr = require('client.cl_utils')
 local activeJob = nil
 
+local isDeliveryUIShown = false
+
+local function showDeliveryUI(text, options)
+    lib.showTextUI(text, options)
+    isDeliveryUIShown = true
+end
+
+local function hideDeliveryUI()
+    if isDeliveryUIShown then
+        lib.hideTextUI()
+        isDeliveryUIShown = false
+    end
+end
+
 local function LoadModel(modelHash)
     if not IsModelInCdimage(modelHash) then return false end
     lib.requestModel(modelHash)
@@ -22,7 +36,7 @@ local function CleanUpJob()
         if activeJob.returnBlip and DoesBlipExist(activeJob.returnBlip) then RemoveBlip(activeJob.returnBlip) end
         activeJob = nil
     end
-    lib.hideTextUI()
+    hideDeliveryUI()
 end
 
 local function SpawnJobVehicles()
@@ -373,13 +387,13 @@ CreateThread(function()
                     sleep = 0
                     DrawMarker(39, depot.x, depot.y, depot.z + 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.5, 1.5, 1.5, 255, 215, 0, 150, false, true, 2, nil, nil, false)
                     if dist < 2.0 then
-                        lib.showTextUI(locale('textui_retrieve_cargo'), { position = 'right-center', icon = 'truck' })
+                        showDeliveryUI(locale('textui_retrieve_cargo'), { position = 'right-center', icon = 'truck' })
                         if IsControlJustPressed(0, 38) then
-                            lib.hideTextUI()
+                            hideDeliveryUI()
                             SpawnJobVehicles()
                         end
                     else
-                        lib.hideTextUI()
+                        hideDeliveryUI()
                     end
                 end
                 
@@ -393,19 +407,19 @@ CreateThread(function()
                         local veh = GetVehiclePedIsIn(cache.ped, false)
                         if veh ~= 0 and veh == activeJob.truck then
                             if IsVehicleAttachedToTrailer(veh) then
-                                lib.showTextUI(locale('textui_unload_fuel'), { position = 'right-center', icon = 'gas-pump' })
+                                showDeliveryUI(locale('textui_unload_fuel'), { position = 'right-center', icon = 'gas-pump' })
                                 if IsControlJustPressed(0, 38) then
-                                    lib.hideTextUI()
+                                    hideDeliveryUI()
                                     UnloadFuel()
                                 end
                             else
-                                lib.showTextUI(locale('textui_attach_trailer'), { position = 'right-center', icon = 'exclamation-circle' })
+                                showDeliveryUI(locale('textui_attach_trailer'), { position = 'right-center', icon = 'exclamation-circle' })
                             end
                         else
-                            lib.showTextUI(locale('textui_must_be_in_hauler'), { position = 'right-center', icon = 'exclamation-circle' })
+                            showDeliveryUI(locale('textui_must_be_in_hauler'), { position = 'right-center', icon = 'exclamation-circle' })
                         end
                     else
-                        lib.hideTextUI()
+                        hideDeliveryUI()
                     end
                 end
                 
@@ -418,21 +432,21 @@ CreateThread(function()
                     if dist < 4.0 then
                         local veh = GetVehiclePedIsIn(cache.ped, false)
                         if veh ~= 0 and veh == activeJob.truck then
-                            lib.showTextUI(locale('textui_return_truck'), { position = 'right-center', icon = 'undo' })
+                            showDeliveryUI(locale('textui_return_truck'), { position = 'right-center', icon = 'undo' })
                             if IsControlJustPressed(0, 38) then
-                                lib.hideTextUI()
+                                hideDeliveryUI()
                                 ReturnTruck()
                             end
                         else
-                            lib.showTextUI(locale('textui_bring_hauler'), { position = 'right-center', icon = 'exclamation-circle' })
+                            showDeliveryUI(locale('textui_bring_hauler'), { position = 'right-center', icon = 'exclamation-circle' })
                         end
                     else
-                        lib.hideTextUI()
+                        hideDeliveryUI()
                     end
                 end
             end
         else
-            lib.hideTextUI()
+            hideDeliveryUI()
         end
         Wait(sleep)
     end
