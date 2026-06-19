@@ -443,6 +443,47 @@ RegisterNetEvent('LNS_Fuel:updateFuelCan', function(dura, nId, currentFuel)
     lib.logger(src, 'Jerry Can Refuel', ('Refueled vehicle (netId: %d) using Jerry Can. New fuel level: %d%%'):format(validatedNId, currentFuel), ('netId:%d'):format(validatedNId), ('newFuel:%d'):format(currentFuel))
 end)
 
+RegisterNetEvent('LNS_Fuel:initVehicleFuel', function(vehNetId, fuelLevel)
+    local src = source
+    local vehicle = NetworkGetEntityFromNetworkId(vehNetId)
+    if vehicle == 0 or not DoesEntityExist(vehicle) then return end
+    
+    local ped = GetPlayerPed(src)
+    local playerCoords = GetEntityCoords(ped)
+    local vehCoords = GetEntityCoords(vehicle)
+    if #(playerCoords - vehCoords) > 15.0 then
+        reportSecurityCheck(src, ("[Security Check] Player %s attempted LNS_Fuel:initVehicleFuel too far from vehicle! Distance: %0.2f meters"):format(src, #(playerCoords - vehCoords)))
+        return
+    end
+
+    local state = Entity(vehicle).state
+    if state.fuel == nil then
+        local clamped = math.clamp(fuelLevel or 100.0, 0.0, 100.0)
+        state:set('fuel', clamped, true)
+    end
+end)
+
+RegisterNetEvent('LNS_Fuel:setVehicleFuel', function(vehNetId, fuelLevel)
+    local src = source
+    local vehicle = NetworkGetEntityFromNetworkId(vehNetId)
+    if vehicle == 0 or not DoesEntityExist(vehicle) then return end
+    
+    local ped = GetPlayerPed(src)
+    local vehSeat = GetVehiclePedIsIn(ped, false)
+    if vehSeat ~= vehicle then
+        local playerCoords = GetEntityCoords(ped)
+        local vehCoords = GetEntityCoords(vehicle)
+        if #(playerCoords - vehCoords) > 15.0 then
+            reportSecurityCheck(src, ("[Security Check] Player %s attempted LNS_Fuel:setVehicleFuel too far from vehicle! Distance: %0.2f meters"):format(src, #(playerCoords - vehCoords)))
+            return
+        end
+    end
+
+    local state = Entity(vehicle).state
+    local clamped = math.clamp(fuelLevel or 0.0, 0.0, 100.0)
+    state:set('fuel', clamped, true)
+end)
+
 lib.addCommand('setfuel', {
     help = 'Set/lower the fuel level of the vehicle you are currently in',
     params = {
@@ -461,6 +502,8 @@ lib.addCommand('setfuel', {
 
     local amount = math.clamp(args.amount or 0, 0, 100)
     
+    local state = Entity(veh).state
+    state:set('fuel', amount, true)
     TriggerClientEvent('LNS_Fuel:setFuel', source, amount)
 
     lib.logger(source, 'Set Fuel Admin Command', ('Admin set vehicle fuel level to %d%%'):format(amount), ('newFuel:%d'):format(amount))

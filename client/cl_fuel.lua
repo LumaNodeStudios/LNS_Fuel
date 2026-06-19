@@ -1,6 +1,7 @@
 local Settings = lib.load('shared.settings')
 local st = require('client.cl_state')
 local hlpr = require('client.cl_utils')
+local isStrictMode = GetConvar('sv_stateBagStrictMode', 'false') == 'true'
 
 local spawnedNozzleProp = nil
 local spawnedRope = nil
@@ -48,7 +49,13 @@ function fuelModule.setFuel(stateBag, veh, amt, sync)
     
     local safeAmt = math.clamp(amt, 0, 100)
     SetVehicleFuelLevel(veh, safeAmt)
-    stateBag:set('fuel', safeAmt, sync)
+    
+    if sync and isStrictMode then
+        stateBag:set('fuel', safeAmt, false)
+        TriggerServerEvent('LNS_Fuel:setVehicleFuel', NetworkGetNetworkIdFromEntity(veh), safeAmt)
+    else
+        stateBag:set('fuel', safeAmt, sync)
+    end
 end
 
 local cl_ownership = Settings.ownership and Settings.ownership.enabled and require('client.cl_ownership') or nil

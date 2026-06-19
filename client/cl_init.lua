@@ -51,6 +51,7 @@ AddTextEntry('lns_fuel_station', locale('fuel_station_blip'))
 local hlpr = require('client.cl_utils')
 local st = require('client.cl_state')
 local fuelMod  = require('client.cl_fuel')
+local isStrictMode = GetConvar('sv_stateBagStrictMode', 'false') == 'true'
 
 require('client.cl_stations')
 require('client.cl_delivery')
@@ -64,8 +65,13 @@ local function handleVehicleDriving()
     local vehStateBag = Entity(veh).state
 
     if vehStateBag.fuel == nil then
-        vehStateBag:set('fuel', GetVehicleFuelLevel(veh), true)
-        while vehStateBag.fuel == nil do Wait(0) end
+        if isStrictMode then
+            TriggerServerEvent('LNS_Fuel:initVehicleFuel', NetworkGetNetworkIdFromEntity(veh), GetVehicleFuelLevel(veh))
+            while vehStateBag.fuel == nil do Wait(0) end
+        else
+            vehStateBag:set('fuel', GetVehicleFuelLevel(veh), true)
+            while vehStateBag.fuel == nil do Wait(0) end
+        end
     end
 
     SetVehicleFuelLevel(veh, vehStateBag.fuel)
@@ -122,8 +128,7 @@ RegisterNetEvent('LNS_Fuel:setFuel', function(amt)
     local veh = GetVehiclePedIsIn(ped, false)
     
     if veh and veh ~= 0 then
-        local vehStateBag = Entity(veh).state
-        fuelMod.setFuel(vehStateBag, veh, amt, true)
+        SetVehicleFuelLevel(veh, amt)
     end
 end)
 
